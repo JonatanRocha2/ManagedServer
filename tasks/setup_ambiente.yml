@@ -1,0 +1,12 @@
+---
+- name: Define url jdbc para ambiente de desenvolvimento
+  set_fact: ds_url=jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=x-oc-rac-scan.sefa.pa.ipa)(PORT=1521)))(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=apps_extranet.sefa.pa.gov.br)))
+  when: ambiente == "DEV"
+
+- name: Define url jdbc para ambiente de homologacao
+  set_fact: ds_url=jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=rac-scan.sefa.pa.ipa)(PORT=1521))(ADDRESS=(PROTOCOL=TCP)(HOST=exa02-scan2.sefa.pa.gov.br)(PORT=1521))(FAILOVER=ON)(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=apps_extranet.sefa.pa.gov.br)(FAILOVER_MODE=(TYPE=SELECT)(METHOD=BASIC))))
+  when: ambiente == "HOM"
+
+- name: Define url jdbc para ambiente de producao
+  set_fact: ds_url=jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=exa01-scan.sefa.pa.gov.br)(PORT=1521))(ADDRESS=(PROTOCOL=TCP)(HOST=exa02-scan1.sefa.pa.gov.br)(PORT=1521))(FAILOVER=ON)(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=apps_extranet.sefa.pa.gov.br)(FAILOVER_MODE=(TYPE=SELECT)(METHOD=BASIC))))
+  when: ambiente == "PROD"

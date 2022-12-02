@@ -1,0 +1,31 @@
+---
+- name: Copia as templates de criacao do managed server (cluster)
+  when: type == "cluster"
+  template: src=templates/{{ item.src }}
+            dest='{{ scripts_dir }}/{{ item.dest }}'
+            owner=oracle group=oinstall
+  with_items:
+    - { src: createClusterManagedServer.py.j2, dest: createClusterManagedServer.py }
+    - { src: clusterManagedServer.properties.j2, dest: clusterManagedServer.properties }
+
+- name: Copia as templates de criacao do managed server (single)
+  when: type == "single"
+  template: src=templates/{{ item.src }}
+            dest='{{ scripts_dir }}/{{ item.dest }}'
+            owner=oracle group=oinstall
+  with_items:
+    - { src: createSingleManagedServer.py.j2, dest: createSingleManagedServer.py }
+    - { src: singleManagedServer.properties.j2, dest: singleManagedServer.properties }
+
+- name: Cria managed server em cluster
+  when: type == "cluster"
+  shell: '{{ wls_cmd_tool }} -skipWLSModuleScanning {{ scripts_dir }}/createClusterManagedServer.py -p {{ scripts_dir }}/clusterManagedServer.properties'
+
+- name: Cria um unico managed server
+  when: type == "single"
+  shell: '{{ wls_cmd_tool }} -skipWLSModuleScanning {{ scripts_dir }}/createSingleManagedServer.py -p {{ scripts_dir }}/singleManagedServer.properties'
+
+    #- name: 'Copia o arquivo boot.properties para o managed server 01'
+    #- name: 'Copia o arquivo boot.properties para o managed server 02'
+
+...

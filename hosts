@@ -1,0 +1,3 @@
+[servers]
+admin ansible_host=ip-do-host  ansible_user=usuario-ssh  ansible_password=senha-ssh
+node  ansible_host=ip-do-host  ansible_user=usuario-ssh  ansible_password=senha-ssh

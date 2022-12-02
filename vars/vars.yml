@@ -1,0 +1,7 @@
+---
+wls_port: 7001
+scripts_dir: '/u01/scripts'
+domain_name: '{{ domain_name }}.sefa.pa.gov.br'
+domain_home: '/u01/Middleware/user_projects/domains/{{ domain_name }}'
+wls_cmd_tool: '/u01/Middleware/wlserver/common/bin/wlst.sh'
+...

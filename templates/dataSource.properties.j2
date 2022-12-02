@@ -1,0 +1,15 @@
+# AdminServer connection details.
+
+admin.username={{ wls_user }}
+admin.password={{ wls_password }}
+admin.url=t3://{{ admin_console_ip }}:{{ wls_port }}
+
+ds.name={{ ds_name }}
+ds.jndi.name=jdbc/{{ ds_name }}
+ds.url={{ ds_url }}
+ds.driver=oracle.jdbc.xa.client.OracleXADataSource
+ds.username={{ ds_username }}
+ds.password={{ ds_password }}
+
+ds.target.type=Cluster
+ds.target.name={{ ms_cluster }}

@@ -1,0 +1,87 @@
+#!/usr/bin/python
+# createManagedServer.py
+
+import getopt
+import re
+import sys
+import time
+
+# Localizar o arquivo properties
+properties = ''
+try:
+    opts, args = getopt.getopt(sys.argv[1:], "p:h::", ["properties="])
+except getopt.GetoptError:
+    print "createManagedServer.py -p"
+    sys.exit(2)
+for opt, arg in opts:
+    if opt == '-h':
+        print "createManagedServer.py -p"
+        sys.exit()
+    elif opt in ('-p', '--properties'):
+        properties = arg
+print "properties=", properties
+
+# Carrega as informacoes do arquivo properties
+
+from java.io import FileInputStream
+
+propInputStream = FileInputStream(properties)
+configProps = Properties()
+configProps.load(propInputStream)
+
+adminUsername = configProps.get("admin.username")
+adminPassword = configProps.get("admin.password")
+adminURL = configProps.get("admin.url")
+managedServerPort = configProps.get("ms.port")
+managedServerCluster = configProps.get("ms.cluster")
+managedServerSSLPort = configProps.get("ms.sslport")
+managedServerMachine = configProps.get("ms.machine")
+managedServerTemplate = configProps.get("ms.template")
+managedServerName01 = (managedServerCluster + "01")
+managedServerAddress01 = configProps.get("ms.address")
+
+# Conectar ao admin console
+
+connect(adminUsername, adminPassword, adminURL)
+
+edit()
+startEdit()
+
+# Criar o managed server
+
+cd('/')
+cmo.createServer(managedServerName01)
+cd('/Servers/' + managedServerName01)
+cmo.setListenAddress(managedServerAddress01)
+cmo.setListenPort(int(managedServerPort))
+
+# Definir saida padrao (stdout) e escrita de erro padrao (stderr)
+cd('/Servers/' + managedServerName01 + '/Log/' + managedServerName01)
+cmo.setRedirectStderrToServerLogEnabled(true)
+cmo.setRedirectStdoutToServerLogEnabled(true)
+cmo.setMemoryBufferSeverity('Debug')
+
+# Associar managed server a um cluster
+if managedServerCluster:
+  cd('/Servers/' + managedServerName01)
+  cmo.setCluster(getMBean('/Clusters/' + managedServerCluster))
+
+# Associar o managed server a uma template
+cd('/Servers/'+ managedServerName01)
+cmo.setServerTemplate(getMBean('/ServerTemplates/ServerTemplate-' + managedServerTemplate))
+cmo.isInherited('Machine')
+cmo.isInherited('Cluster')
+
+# Associar o managed server ao node manager
+cd('/Servers/' + managedServerName01)
+cmo.setMachine(getMBean('/Machines/' + managedServerMachine))
+
+save()
+activate()
+
+#Inicia o managed server
+cd('domainRuntime:/ServerLifeCycleRuntimes/' + managedServerName01)
+cmo.start()
+
+disconnect()
+exit()

@@ -1,0 +1,13 @@
+---
+- name: Copia as templates de criacao do data source
+  template: src=templates/{{ item.src }}
+            dest='{{ scripts_dir }}/{{ item.dest }}'
+            owner=oracle group=oinstall
+  with_items:
+    - { src: createDataSource.py.j2, dest: createDataSource.py }
+    - { src: dataSource.properties.j2, dest: dataSource.properties }
+
+- name: Cria o data source
+  shell: '{{ wls_cmd_tool }} -skipWLSModuleScanning {{ scripts_dir }}/createDataSource.py -p {{ scripts_dir }}/dataSource.properties'
+  ignore_errors: yes
+...

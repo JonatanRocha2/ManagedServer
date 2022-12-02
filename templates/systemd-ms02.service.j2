@@ -1,0 +1,16 @@
+[Unit]
+Description=Managed Server {{ ms_name }}02
+
+[Service]
+Type=simple
+WorkingDirectory=/u01/Middleware/user_projects/domains/api-interno-dev.sefa.pa.gov.br/bin/
+ExecStart=/u01/Middleware/user_projects/domains/api-interno-dev.sefa.pa.gov.br/bin/startManagedWebLogic.sh {{ ms_name }}02 t3://{{ admin_console_ip }}:{{ wls_port }}
+ExecStop=/u01/Middleware/user_projects/domains/api-interno-dev.sefa.pa.gov.br/bin/stopManagedWebLogic.sh {{ ms_name }}02 t3://{{ admin_console_ip }}:{{ wls_port }}
+User=oracle
+Group=oinstall
+KillMode=process
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+

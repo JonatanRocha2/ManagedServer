@@ -1,0 +1,141 @@
+#!/usr/bin/python
+# createManagedServer.py
+
+import getopt
+import re
+import sys
+import time
+
+# Localizar o arquivo properties
+properties = ''
+try:
+    opts, args = getopt.getopt(sys.argv[1:], "p:h::", ["properties="])
+except getopt.GetoptError:
+    print "createManagedServer.py -p"
+    sys.exit(2)
+for opt, arg in opts:
+    if opt == '-h':
+        print "createManagedServer.py -p"
+        sys.exit()
+    elif opt in ('-p', '--properties'):
+        properties = arg
+print "properties=", properties
+
+# Carrega as informacoes do arquivo properties
+
+from java.io import FileInputStream
+
+propInputStream = FileInputStream(properties)
+configProps = Properties()
+configProps.load(propInputStream)
+
+adminUsername = configProps.get("admin.username")
+adminPassword = configProps.get("admin.password")
+adminURL = configProps.get("admin.url")
+managedServerPort = configProps.get("ms.port")
+managedServerCluster = configProps.get("ms.cluster")
+managedServerSSLPort = configProps.get("ms.sslport")
+managedServerMachine01 = configProps.get("ms.machine01")
+managedServerMachine02 = configProps.get("ms.machine02")
+managedServerTemplate = configProps.get("ms.template")
+managedServerName01 = (managedServerCluster + "01")
+managedServerAddress01 = configProps.get("ms.address01")
+managedServerName02 = (managedServerCluster + "02")
+managedServerAddress02 = configProps.get("ms.address02")
+
+# Conectar ao admin console
+
+connect(adminUsername, adminPassword, adminURL)
+
+edit()
+startEdit()
+
+# Cria o managed server 01
+cd('/')
+cmo.createServer(managedServerName01)
+cd('/Servers/' + managedServerName01)
+cmo.setListenAddress(managedServerAddress01)
+cmo.setListenPort(int(managedServerPort))
+
+# Definir saida padrao (stdout) e escrita de erro padrao (stderr)
+cd('/Servers/' + managedServerName01 + '/Log/' + managedServerName01)
+cmo.setRedirectStderrToServerLogEnabled(true)
+cmo.setRedirectStdoutToServerLogEnabled(true)
+cmo.setMemoryBufferSeverity('Debug')
+
+# Associar managed server a um cluster
+if managedServerCluster:
+  cd('/Servers/' + managedServerName01)
+  cmo.setCluster(getMBean('/Clusters/' + managedServerCluster))
+
+# Associar o managed server ao node manager
+cd('/Servers/' + managedServerName01)
+cmo.setMachine(getMBean('/Machines/' + managedServerMachine01))
+
+# Associar o managed server a uma template
+cd('/Servers/'+ managedServerName01)
+cmo.setServerTemplate(getMBean('/ServerTemplates/ServerTemplate-' + managedServerTemplate))
+cmo.isInherited('Machine')
+cmo.isInherited('Cluster')
+
+# Configurar rotate dos logs do managed server
+cd('/Servers/' + managedServerName01 + '/Log/' + managedServerName01)
+cmo.setRotationType('byTime')
+cmo.setFileCount(30)
+cmo.setRedirectStderrToServerLogEnabled(true)
+cmo.setRedirectStdoutToServerLogEnabled(true)
+cmo.setMemoryBufferSeverity('Debug')
+cmo.setLogFileSeverity('Notice')
+
+#Inicia o managed server
+cd('domainRuntime:/ServerLifeCycleRuntimes/' + managedServerName01)
+cmo.start()
+
+# --------------------------------------------------------------------------------------------------------
+
+# Cria o managed server 02
+cd('/')
+cmo.createServer(managedServerName02)
+cd('/Servers/' + managedServerName02)
+cmo.setListenAddress(managedServerAddress02)
+cmo.setListenPort(int(managedServerPort))
+
+# Definir saida padrao (stdout) e escrita de erro padrao (stderr)
+cd('/Servers/' + managedServerName02 + '/Log/' + managedServerName02)
+cmo.setRedirectStderrToServerLogEnabled(true)
+cmo.setRedirectStdoutToServerLogEnabled(true)
+cmo.setMemoryBufferSeverity('Debug')
+
+# Associar managed server a um cluster
+if managedServerCluster:
+  cd('/Servers/' + managedServerName02)
+  cmo.setCluster(getMBean('/Clusters/' + managedServerCluster))
+
+# Associar o managed server ao node manager
+cd('/Servers/' + managedServerName02)
+cmo.setMachine(getMBean('/Machines/' + managedServerMachine02))
+
+# Associar o managed server a uma template
+cd('/Servers/'+ managedServerName02)
+cmo.setServerTemplate(getMBean('/ServerTemplates/ServerTemplate-' + managedServerTemplate))
+cmo.isInherited('Machine')
+cmo.isInherited('Cluster')
+
+# Configurar rotate dos logs do managed server
+cd('/Servers/' + managedServerName02 + '/Log/' + managedServerName02)
+cmo.setRotationType('byTime')
+cmo.setFileCount(30)
+cmo.setRedirectStderrToServerLogEnabled(true)
+cmo.setRedirectStdoutToServerLogEnabled(true)
+cmo.setMemoryBufferSeverity('Debug')
+cmo.setLogFileSeverity('Notice')
+
+#Inicia o managed server
+cd('domainRuntime:/ServerLifeCycleRuntimes/' + managedServerName02)
+cmo.start()
+
+save()
+activate()
+
+disconnect()
+exit()

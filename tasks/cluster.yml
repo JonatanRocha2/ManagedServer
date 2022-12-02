@@ -1,0 +1,12 @@
+---
+- name: Copia as templates de criacao do cluster
+  template: src=templates/{{ item.src }}
+            dest='{{ scripts_dir }}/{{ item.dest }}'
+            owner=oracle group=oinstall
+  with_items:
+    - { src: createCluster.py.j2, dest: createCluster.py }
+    - { src: cluster.properties.j2, dest: cluster.properties }
+
+- name: Cria o cluster
+  shell: '{{ wls_cmd_tool }} -skipWLSModuleScanning {{ scripts_dir }}/createCluster.py -p {{ scripts_dir }}/cluster.properties'
+...

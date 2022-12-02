@@ -1,0 +1,210 @@
+---
+- name: Cria o cluster, managed servers e data sources
+  hosts: all
+
+  vars_files:
+    - vars/vars.yml
+
+  tasks:
+# Incluir variavel ambiente
+  - pause:
+      prompt: "Insira o ambiente desejado - DEV - HOM - TRAN - PROD"
+    register: result_ambiente
+  - set_fact:
+      ambiente: "{{ result_ambiente.user_input }}"
+
+  - name: Incluir variaveis de acordo com o ambiente
+    include: tasks/setup_ambiente.yml
+
+  - name: Cria o diretorio {{ scripts_dir }}
+    file:
+      path: "{{ scripts_dir }}"
+      state: directory
+      mode: '0750'
+      owner: oracle
+      group: oinstall
+    when: "{{ inventory_hostname == 'admin' }}"
+
+# Incluir tipo de managed server - single ou cluster
+
+  - pause:
+      prompt: "Insira o tipo do managed server a ser criado - single ou cluster"
+    register: result_type
+  - set_fact:
+      type: "{{ result_type.user_input }}"
+
+# Incluir IPs do admin console e node manager
+  - pause:
+      prompt: "Insira o IP do admin console"
+    register: result_admin_ip
+  - set_fact:
+      admin_console_ip: "{{ result_admin_ip.user_input }}"
+  - pause:
+      prompt: "Insira o IP do node manager para o managed server 01"
+    register: result_ip_node
+  - set_fact:
+      ms_address01: "{{ result_ip_node.user_input }}"
+  - pause:
+      prompt:  "Insira o IP do node manager para o managed server 02"
+    register: result_ip_node2
+  - set_fact:
+      ms_address02: "{{ result_ip_node.user_input }}"
+
+# Incluir usuario e senha do admin console
+  - pause:
+      prompt: "Insira seu usuario do admin console"
+    register: result_wls_user
+  - set_fact:
+      wls_user: "{{ result_wls_user.user_input }}"
+  - pause:
+      prompt: "Insira sua senha do admin console"
+    register: result_wls_password
+  - set_fact:
+      wls_password: "{{ result_wls_password.user_input }}"
+
+# Incluir nome do dominio do wls
+  - pause:
+      prompt: "Insira o nome do dominio do wls"
+    register: result_domain
+  - set_fact:
+      domain_name: "{{ result_domain.user_input }}"
+
+# Incluir nome do cluster, managed server e porta
+  - pause:
+      prompt: "Insira um nome para o cluster"
+    register: result_cluster
+  - set_fact:
+      ms_cluster: "{{ result_cluster.user_input }}"
+      ms_name: "{{ result_cluster.user_input }}"
+  - pause:
+      prompt: "Insira uma porta disponivel para o novo managed server"
+    register: result_port
+  - set_fact:
+      ms_port: "{{ result_port.user_input }}"
+  - pause:
+      prompt: "Insira a template que sera associada ao novo managed server - 128 - 256 - 512"
+    register: result_template
+  - set_fact:
+      template: "{{ result_template.user_input }}"
+  - pause:
+      prompt: "Insira a maquina que sera associada ao novo managed server 01"
+    register: result_machine01
+  - set_fact:
+      ms_machine01: "{{ result_machine01.user_input }}"
+  - pause:
+      prompt: "Insira a maquina que sera associada ao novo managed server 02"
+    register: result_machine02
+  - set_fact:
+      ms_machine02: "{{ result_machine02.user_input }}"
+
+
+# Incluir nome, user e senha do data source
+  - pause:
+      prompt: "Insira o nome do data source que sera criado"
+    register: result_ds_name
+  - set_fact:
+      ds_name: "{{ result_ds_name.user_input }}"
+  - pause:
+      prompt: "Insira o usuario do data source que sera criado"
+    register: result_ds_user
+  - set_fact:
+      ds_username: "{{ result_ds_user.user_input }}"
+  - pause:
+      prompt: "Insira a senha do data source que sera criado"
+    register: result_ds_pass
+  - set_fact:
+      ds_password: "{{ result_ds_pass.user_input }}"
+
+# Inicia as taks
+  - name: Criacao Cluster
+    include: tasks/cluster.yml
+    when: "{{ inventory_hostname == 'admin' }}"
+    tags: cluster
+
+  - name: Criacao Managed Server
+    include: tasks/managed-server.yml
+    when: "{{ inventory_hostname == 'admin' }}"
+    tags: server
+
+  - name: Criacao Data Source
+    include: tasks/data-source.yml
+    when: "{{ inventory_hostname == 'admin' }}"
+    tags: ds
+
+  - name: Limpa scripts
+    file: path={{ scripts_dir }} state=absent
+    when: "{{ inventory_hostname == 'admin' }}"
+
+  - name: Copia boot.properties do admin server para local
+    run_once: yes
+    fetch:
+      src: "{{ domain_home }}.sefa.pa.gov.br/servers/AdminServer/security/boot.properties"
+      dest: tmp/
+      flat: yes
+    when: "{{ inventory_hostname == 'admin' }}"
+    tags: sysctl
+
+  - name: Copia boot.properties para o managed server 01
+    copy:
+      src: tmp/boot.properties
+      dest: "{{ domain_home }}.sefa.pa.gov.br/servers/{{ ms_name }}01/security/"
+      owner: oracle
+      group: oinstall
+      mode: 0750
+    when: "{{ inventory_hostname == 'node' }}"
+    tags: sysctl
+#  - name: Copia boot.properties para o managed server 02
+#    copy:
+#      src: tmp/boot.properties
+#      dest: "{{ domain_home }}.sefa.pa.gov.br/servers/{{ ms_name }}02/security/"
+#      owner: oracle
+#      group: oinstall
+#      mode: 0750
+#    when: "{{ inventory_hostname == 'node'}}"
+#    tags: sysctl
+
+# Configura o systemctl para start/stop do managed server
+
+  - name: Cria servico do managed server 01
+    template:
+      src: templates/systemd-ms01.service.j2
+      dest: /etc/systemd/system/{{ ms_name }}01.service
+      owner: oracle
+      group: oinstall
+      mode: 0755
+    when: "{{ inventory_hostname == 'node' }}"
+    tags: sysctl
+
+#  - name: Cria servico do managed server 02
+#    template:
+#      src: templates/systemd-ms02.service.j2
+#      dest: /etc/systemd/system/{{ ms_name }}02.service
+#      owner: oracle
+#      group: oinstall
+#      mode: 0755
+#    when: "{{ inventory_hostname == 'node'}}"
+#    tags: sysctl
+
+  - name: Reload systemd
+    systemd:
+      daemon_reload: yes
+    when: "{{ inventory_hostname == 'node'}}"
+    tags: sysctl
+
+  - name: Desliga o managed server 01
+    command: "sh {{ domain_home }}.sefa.pa.gov.br/bin/stopManagedWebLogic.sh {{ ms_name }}01 t3://{{ admin_console_ip }}:{{ wls_port }}"
+    when: "{{ inventory_hostname == 'node'}}"
+    tags: sysctl
+
+#  - name: Desliga o managed server 02
+#    shell: 'cd $DOMAIN_HOME/bin && ./stopManagedWebLogic.sh {{ ms_name }}02 t3://{{ admin_console_ip }}:{{ wls_port }}'
+#    when: "{{ inventory_hostname == 'node'}}"
+
+  - name: Inicia o managed server 01 usando o systemctl
+    systemd: 
+      name: "{{ ms_name }}01"
+      state: started
+      enabled: yes
+    when: "{{ inventory_hostname == 'node'}}"
+    tags: sysctl
+...
